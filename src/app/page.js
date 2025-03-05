@@ -57,7 +57,7 @@ export default function App() {
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
-            <Link href="#" className="text-sm font-medium hover:text-primary">
+            <Link href="/login" className="text-sm font-medium hover:text-primary">
               Sign In
             </Link>
             <Button>
