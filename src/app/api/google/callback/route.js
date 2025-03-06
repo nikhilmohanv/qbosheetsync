@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import axios from "axios";
 import fs from "fs";
 import path from "path";
+import { supabase } from "@/lib/supabase";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
+  const user_id=searchParams.get("state")
 
   if (!code) {
     return NextResponse.json({ error: "No code provided" }, { status: 400 });
@@ -37,7 +39,6 @@ export async function GET(request) {
     const { data, error } = await supabase.from("sheetstoken").insert({
       access_token,
       refresh_token,
-      realm_id,
       user_id,
     });
 
