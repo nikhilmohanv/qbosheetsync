@@ -30,38 +30,39 @@ import {
 } from "@/components/ui/dialog";
 
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/context/UserContext";
 
 // app/dashboard/page.js
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
   const [name, setName] = useState("");
-  // fetch user
-  useEffect(() => {
-    const fetchUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
+  const [connections, setConnections] = useState([]); //to store all the connections user made
 
-    fetchUser();
-  }, []);
+  const { user, loading } = useUser();
+
+  if (loading) return <p>Loading...</p>;
 
   useEffect(() => {
-    if (user) {
-      const { connections, connectionsError } = supabase
+    async function fetchConnections() {
+      if (!user) return;
+
+      const { data, error } = await supabase
         .from("QBO Sheet Connect")
-        .select(id, name)
-        .eq(user_id, user.id);
+        .select("id, name")
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Error fetching connections:", error);
+        return;
+      }
+
+      setConnections(data);
     }
-    
+
+    fetchConnections();
   }, [user]);
-  // show loading screen
-  if (loading) {
-    return <p>Loading...</p>;
-  }
 
   // handle creation of new connection
   async function createConnection() {
@@ -95,17 +96,17 @@ export default function Dashboard() {
           quickbook_token_id: qboData[0].id, // Get inserted ID from first insert
           sheets_token_id: sheetData[0].id,
         },
-      ]);
+      ])
+      .select("id");
 
     if (connectError) {
       console.error("QBO Sheet Connect insert error:", connectError);
     } else {
       console.log("Connection created:", connectData);
+      router.push(`/edit-connection/${connectData[0].id}`);
     }
   }
 
-  const quickbooksAuthUrl = `${process.env.NEXT_PUBLIC_QUICKBOOKS_AUTH_URL}?client_id=${process.env.NEXT_PUBLIC_QUICKBOOKS_CLIENT_ID}&response_type=code&scope=${process.env.NEXT_PUBLIC_QUICKBOOKS_SCOPE}&redirect_uri=${process.env.NEXT_PUBLIC_QUICKBOOKS_REDIRECT_URI}&state=${user.id}`;
-  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}&redirect_uri=${process.env.NEXT_PUBLIC_GOOGLE_REDIRECT_URI}&response_type=code&scope=${process.env.NEXT_PUBLIC_GOOGLE_SCOPES}&access_type=offline&prompt=consent`;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -142,8 +143,15 @@ export default function Dashboard() {
               </DialogContent>
             </Dialog>
           </div>
-
-          {/* <ConnectionStatus /> */}
+          {connections.length === 0 ? (
+            <p>No connections found</p>
+          ) : (
+            <ul>
+              {connections.map((conn) => (
+                <ConnectionStatus name={conn.name} id={conn.id} />
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>
