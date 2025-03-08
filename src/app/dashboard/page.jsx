@@ -35,16 +35,13 @@ import { useUser } from "@/context/UserContext";
 
 // app/dashboard/page.js
 export default function Dashboard() {
+  const { user, loading } = useUser();
   const router = useRouter();
 
   const [name, setName] = useState("");
   const [connections, setConnections] = useState([]); //to store all the connections user made
 
-  const { user, loading } = useUser();
-
-  if (loading) return <p>Loading...</p>;
-
-  useEffect(() => {
+ useEffect(() => {
     async function fetchConnections() {
       if (!user) return;
 
@@ -64,6 +61,9 @@ export default function Dashboard() {
     fetchConnections();
   }, [user]);
 
+  if (loading) return <p>Loading...</p>;
+
+ 
   // handle creation of new connection
   async function createConnection() {
     const { data: qboData, error: qboError } = await supabase
@@ -107,7 +107,6 @@ export default function Dashboard() {
     }
   }
 
-
   return (
     <div className="flex min-h-screen bg-background">
       {/* <DashboardSidebar /> */}
@@ -148,7 +147,7 @@ export default function Dashboard() {
           ) : (
             <ul>
               {connections.map((conn) => (
-                <ConnectionStatus name={conn.name} id={conn.id} />
+                <ConnectionStatus name={conn.name} id={conn.id} key={conn.id} />
               ))}
             </ul>
           )}

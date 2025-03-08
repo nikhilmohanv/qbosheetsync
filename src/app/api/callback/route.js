@@ -23,14 +23,8 @@ export async function GET(request) {
       return NextResponse.json({ error: "No code provided" }, { status: 400 });
     }
 
-    const user_id = searchParams.get("state");
+    const id = searchParams.get("state");
     const realm_id = searchParams.get("realmId");
-
-    console.log("Debugging info:", {
-      user_id,
-      realm_id,
-      code: code ? "Code received" : "No code"
-    });
 
     // QuickBooks token exchange logic (same as before)
     const tokenResponse = await axios.post(
@@ -57,59 +51,93 @@ export async function GET(request) {
     console.log("Preparing to insert:", {
       access_token: access_token ? "Token present" : "No token",
       refresh_token: refresh_token ? "Token present" : "No token",
-      user_id,
-      realm_id
+      realm_id,
     });
+    // First query: Get the quickbook_token_id from QBO Sheet Connect
+    const { data: qboConnectionData, error: connectionError } = await supabase
+      .from("QBO Sheet Connect")
+      .select("quickbook_token_id")
+      .eq("id", id);
 
-    // Comprehensive Supabase insertion with error handling
-    const { data, error } = await supabase
+    // Check for errors in the first query
+    if (connectionError) {
+      console.error("Error fetching QuickBooks connection:", connectionError);
+      return;
+    }
+
+    // Extract the token ID to use in the update query
+    const tokenIdToUpdate = qboConnectionData[0]?.quickbook_token_id;
+
+    if (!tokenIdToUpdate) {
+      console.error("No QuickBooks token ID found in the connection data");
+      return;
+    }
+
+    // Second query: Update the qbotokens record with the matching ID
+    const { data: updatedTokenData, error: updateError } = await supabase
       .from("qbotokens")
-      .insert({
-        access_token, 
-        refresh_token, 
-        realm_id, 
-        user_id 
-      });
+      .update({
+        access_token,
+        refresh_token,
+        realm_id,
+      })
+      .eq("id", tokenIdToUpdate);
+
+    console.log("QuickBooks token updated successfully:", updatedTokenData);
 
     // Enhanced error logging
-    if (error) {
+    if (updateError) {
       console.error("Detailed Supabase Error:", {
         message: error.message,
         details: error,
         code: error.code,
-        hint: error.hint
+        hint: error.hint,
       });
 
       return NextResponse.json(
-        { 
-          error: "Failed to save tokens", 
+        {
+          error: "Failed to save tokens",
           details: {
-            message: error.message,
-            code: error.code
-          }
-        }, 
+            message: updateError.message,
+            code: updateError.code,
+          },
+        },
         { status: 500 }
       );
     }
 
+    // Update the QBO Sheet Connect status after token update succeeds
+    const { data: updatedConnectionData, error: statusUpdateError } =
+      await supabase
+        .from("QBO Sheet Connect")
+        .update({
+          qbo_connection_complete: true,
+        })
+        .eq("id", id);
+
+    if (statusUpdateError) {
+      console.error("Error updating connection status:", statusUpdateError);
+    }
+
     console.log("Tokens successfully saved to Supabase");
 
-    // Redirect to the sheets connect page
-    return NextResponse.redirect(new URL("/sheetsconnect", request.url));
-
+    // Redirect to the edit connection page
+    return NextResponse.redirect(
+      new URL(`/edit-connection/${id}`, request.url)
+    );
   } catch (error) {
     // Comprehensive catch-all error handling
     console.error("Full Error Capture:", {
       message: error.message,
       stack: error.stack,
-      response: error.response?.data
+      response: error.response?.data,
     });
 
     return NextResponse.json(
-      { 
-        error: "Authentication process failed", 
-        details: error.message 
-      }, 
+      {
+        error: "Authentication process failed",
+        details: error.message,
+      },
       { status: 500 }
     );
   }
