@@ -41,7 +41,7 @@ export default function Dashboard() {
   const [name, setName] = useState("");
   const [connections, setConnections] = useState([]); //to store all the connections user made
 
- useEffect(() => {
+  useEffect(() => {
     async function fetchConnections() {
       if (!user) return;
 
@@ -63,7 +63,6 @@ export default function Dashboard() {
 
   if (loading) return <p>Loading...</p>;
 
- 
   // handle creation of new connection
   async function createConnection() {
     const { data: qboData, error: qboError } = await supabase
@@ -108,46 +107,28 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="container mx-auto py-8 px-4">
       {/* <DashboardSidebar /> */}
-      <div className="flex-1">
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <DashboardHeader user={user} />
-          <div className="flex items-center gap-2">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline">Add new Connection</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add Connection</DialogTitle>
-                  <DialogDescription>Add a name here</DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
-                      Name
-                    </Label>
-                    <Input
-                      id="name"
-                      defaultValue="Pedro Duarte"
-                      className="col-span-3"
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={createConnection}>Save changes</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
+
+      <DashboardHeader
+        user={user}
+        setName={setName}
+        createConnection={createConnection}
+      />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {connections.length === 0 ? (
             <p>No connections found</p>
           ) : (
             <ul>
               {connections.map((conn) => (
-                <ConnectionStatus name={conn.name} id={conn.id} key={conn.id} />
+                <Link href={`/edit-connection/${conn.id}`} key={conn.id}>
+                  <ConnectionStatus
+                    name={conn.name}
+                    id={conn.id}
+                   
+                  />
+                </Link>
               ))}
             </ul>
           )}

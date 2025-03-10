@@ -24,6 +24,7 @@ import { supabase } from "@/lib/supabase";
 import { Clipboard } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard-header";
+import Link from "next/link";
 
 export default function ConnectPage() {
   const { user, loading } = useUser();
@@ -55,7 +56,7 @@ export default function ConnectPage() {
         const { data, error } = await supabase
           .from("QBO Sheet Connect")
           .select(
-            "id, qbo_connection_complete, gsheets_connection_complete, sheets_token_id"
+            "id, qbo_connection_complete, gsheets_connection_complete, sheets_token_id,spreadsheet_id"
           )
           .eq("id", id)
           .single();
@@ -69,19 +70,21 @@ export default function ConnectPage() {
           }));
           return;
         }
-
-        // Check if sheets connection is complete and has a token ID
-        if (data.gsheets_connection_complete && data.sheets_token_id) {
-          const { data: sheetData, error: sheetError } = await supabase
-            .from("sheetstoken")
-            .select("spreadsheet_id")
-            .eq("id", data.sheets_token_id)
-            .single();
-
-          if (!sheetError && sheetData && sheetData.spreadsheet_id) {
-            setTemplateLink(sheetData.spreadsheet_id);
-          }
+        if (data.spreadsheet_id != null) {
+          setTemplateId(data.spreadsheet_id);
         }
+        // Check if sheets connection is complete and has a token ID
+        // if (data.gsheets_connection_complete && data.sheets_token_id) {
+        //   const { data: sheetData, error: sheetError } = await supabase
+        //     .from("sheetstoken")
+        //     .select("spreadsheet_id")
+        //     .eq("id", data.sheets_token_id)
+        //     .single();
+
+        //   if (!sheetError && sheetData && sheetData.spreadsheet_id) {
+        //     setTemplateLink(sheetData.spreadsheet_id);
+        //   }
+        // }
 
         // Update connection status state
         setConnectionStatus({
@@ -114,6 +117,7 @@ export default function ConnectPage() {
 
     fetchConnectionStatus();
   }, [id]);
+
   const handleQuickbooksConnect = () => {
     router.push(quickbooksAuthUrl);
   };
@@ -142,9 +146,9 @@ export default function ConnectPage() {
 
   const saveTemplateId = async () => {
     try {
-      const { data, error } = await supabase.from("sheetstoken").update({
+      const { data, error } = await supabase.from("QBO Sheet Connect").update({
         spreadsheet_id: templateId,
-      });
+      }).eq("id",id)
 
       if (error) {
         throw error; // Handle the error
@@ -162,7 +166,10 @@ export default function ConnectPage() {
 
   return (
     <div className="container max-w-3xl py-10 px-4 mx-auto">
-      <h1 className="text-3xl font-bold text-center mb-8">
+      <Link href="/dashboard" className="hover:underline text-center">
+        Go to dashboard
+      </Link>
+      <h1 className="text-3xl font-bold text-center mt-9 mb-8">
         Connect QuickBooks to Google Sheets
       </h1>
 
@@ -329,11 +336,11 @@ export default function ConnectPage() {
         {currentStep === 3 && (
           <>
             <CardHeader>
-              <CardTitle>Step 3: Get Your Integration Link</CardTitle>
-              <CardDescription>
-                Copy this link to access your QuickBooks to Google Sheets
-                integration
-              </CardDescription>
+              <CardTitle>Step 3: Get Your template Link</CardTitle>
+              {/* <CardDescription>
+                Copy the below link to duplicate given template and duplicate
+                this template. Them paste the duplicated sheets id below.
+              </CardDescription> */}
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-6 border-2 border-dashed rounded-lg">

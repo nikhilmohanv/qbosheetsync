@@ -1,35 +1,58 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Plus } from "lucide-react";
 import { Search, Bell, Menu } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
+import { Label } from "./ui/label";
 
-export function DashboardHeader({ user }) {
+export function DashboardHeader({ user,createConnection,setName }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back! {user.email}</p>
+        <h1 className="text-3xl font-bold">QuickBooks to Google Sheets</h1>
+        <p className="text-muted-foreground mt-1">
+          Manage your data connections
+        </p>
       </div>
 
-      {/* <div className="flex items-center gap-2">
-        <div className="relative md:w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search..."
-            className="w-full pl-8"
-          />
-        </div>
-
-        <Button variant="outline" size="icon">
-          <Bell className="h-4 w-4" />
-          <span className="sr-only">Notifications</span>
-        </Button>
-
-        <Button variant="outline" size="icon" className="md:hidden">
-          <Menu className="h-4 w-4" />
-          <span className="sr-only">Menu</span>
-        </Button>
-      </div> */}
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button className="gap-2">
+            <Plus className="w-4 h-4" />
+            New Connection
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Connection</DialogTitle>
+            <DialogDescription>Add a name here</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="name"
+                defaultValue="Pedro Duarte"
+                className="col-span-3"
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={createConnection}>Create Connection</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
