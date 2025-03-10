@@ -25,6 +25,7 @@ import { Clipboard } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardHeader } from "@/components/dashboard-header";
 import Link from "next/link";
+import { Toaster } from "sonner";
 
 export default function ConnectPage() {
   const { user, loading } = useUser();
@@ -41,8 +42,9 @@ export default function ConnectPage() {
   });
   const [templateId, setTemplateId] = useState("");
   const [templateLink, setTemplateLink] = useState(
-    "https://connect.example.com/qb-sheets/12345"
+    "https://docs.google.com/spreadsheets/d/1vsz4ea6Otmp11UrkSOWlYtoAsHmlbY_JNhcWc-MbqhE/copy"
   );
+  const [saveTemplateIdLoading, setSaveTemplateIdLoading] = useState(false); //loading state management for the template id saving to db
 
   // Define auth URLs
   const quickbooksAuthUrl = `${process.env.NEXT_PUBLIC_QUICKBOOKS_AUTH_URL}?client_id=${process.env.NEXT_PUBLIC_QUICKBOOKS_CLIENT_ID}&response_type=code&scope=${process.env.NEXT_PUBLIC_QUICKBOOKS_SCOPE}&redirect_uri=${process.env.NEXT_PUBLIC_QUICKBOOKS_REDIRECT_URI}&state=${id}`;
@@ -73,18 +75,6 @@ export default function ConnectPage() {
         if (data.spreadsheet_id != null) {
           setTemplateId(data.spreadsheet_id);
         }
-        // Check if sheets connection is complete and has a token ID
-        // if (data.gsheets_connection_complete && data.sheets_token_id) {
-        //   const { data: sheetData, error: sheetError } = await supabase
-        //     .from("sheetstoken")
-        //     .select("spreadsheet_id")
-        //     .eq("id", data.sheets_token_id)
-        //     .single();
-
-        //   if (!sheetError && sheetData && sheetData.spreadsheet_id) {
-        //     setTemplateLink(sheetData.spreadsheet_id);
-        //   }
-        // }
 
         // Update connection status state
         setConnectionStatus({
@@ -96,14 +86,22 @@ export default function ConnectPage() {
 
         // Determine current step based on connection status
         let step = 1;
-        if (data.qbo_connection_complete && data.gsheets_connection_complete) {
+        if (
+          data.qbo_connection_complete &&
+          data.gsheets_connection_complete &&
+          data.spreadsheet_id
+        ) {
+          step = 4;
+        } else if (
+          data.qbo_connection_complete &&
+          data.gsheets_connection_complete
+        ) {
           step = 3; // Both connected
         } else if (data.qbo_connection_complete) {
           step = 2; // QBO connected, Sheets not connected
         } else if (data.gsheets_connection_complete) {
           step = 2; // Sheets connected, QBO not connected
         }
-
         setCurrentStep(step);
       } catch (error) {
         console.error("Failed to fetch connection status:", error);
@@ -133,7 +131,7 @@ export default function ConnectPage() {
   };
 
   const nextStep = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -145,20 +143,26 @@ export default function ConnectPage() {
   };
 
   const saveTemplateId = async () => {
+    setSaveTemplateIdLoading(true); // Set loading to true when the function starts
     try {
-      const { data, error } = await supabase.from("QBO Sheet Connect").update({
-        spreadsheet_id: templateId,
-      }).eq("id",id)
+      const { data, error } = await supabase
+        .from("QBO Sheet Connect")
+        .update({
+          spreadsheet_id: templateId,
+        })
+        .eq("id", id);
 
       if (error) {
         throw error; // Handle the error
       }
       toast("Template ID saved successfully");
       console.log("Template ID saved successfully:", data);
-      // Optionally, you can update the UI or show a success message here
     } catch (error) {
       console.error("Error saving Template ID:", error);
       toast("Error");
+    } finally {
+      setSaveTemplateIdLoading(false); // Set loading to false when the function ends
+      setCurrentStep(4)
     }
   };
 
@@ -184,8 +188,8 @@ export default function ConnectPage() {
                 step < currentStep
                   ? "bg-green-600 border-green-600 text-white"
                   : step === currentStep
-                  ? "bg-primary border-primary text-white"
-                  : "bg-white border-gray-300 text-gray-400"
+                    ? "bg-primary border-primary text-white"
+                    : "bg-white border-gray-300 text-gray-400"
               }`}
             >
               {step < currentStep ? <Check className="w-5 h-5" /> : step}
@@ -194,8 +198,8 @@ export default function ConnectPage() {
               {step === 1
                 ? "QuickBooks"
                 : step === 2
-                ? "Google Sheets"
-                : "Get Link"}
+                  ? "Google Sheets"
+                  : "Copy Template"}
             </span>
           </div>
         ))}
@@ -336,24 +340,10 @@ export default function ConnectPage() {
         {currentStep === 3 && (
           <>
             <CardHeader>
-              <CardTitle>Step 3: Get Your template Link</CardTitle>
-              {/* <CardDescription>
-                Copy the below link to duplicate given template and duplicate
-                this template. Them paste the duplicated sheets id below.
-              </CardDescription> */}
+              <CardTitle>Step 3: Copy this template</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-6 border-2 border-dashed rounded-lg">
-                <div className="text-center mb-6">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-4">
-                    <Check className="w-6 h-6 text-green-600" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">Setup Complete!</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Your QuickBooks and Google Sheets are connected
-                  </p>
-                </div>
-
                 <div className="relative">
                   <Input value={templateLink} readOnly className="pr-12" />
                   <Button
@@ -403,8 +393,13 @@ export default function ConnectPage() {
                     className="flex-1"
                   />
 
-                  <Button size="sm" onClick={saveTemplateId}>
-                    Save
+                  <Button
+                    size="sm"
+                    onClick={saveTemplateId}
+                    disabled={saveTemplateIdLoading}
+                  >
+                    {saveTemplateIdLoading ? "Saving..." : "Save"}{" "}
+                    {/* Show "Saving..." when loading */}
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
@@ -427,7 +422,52 @@ export default function ConnectPage() {
             </CardFooter>
           </>
         )}
+
+        {currentStep === 4 && (
+          <>
+            <CardHeader>
+              <CardTitle>Onboarding Completed</CardTitle>
+              {/* <CardDescription>
+                Copy the below link to duplicate given template and duplicate
+                this template. Them paste the duplicated sheets id below.
+              </CardDescription> */}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-6 border-2 border-dashed rounded-lg">
+                <div className="text-center mb-6">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-4">
+                    <Check className="w-6 h-6 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">Setup Complete!</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Go back to dashboard
+                  </p>
+                </div>
+
+                {/* <p className="text-sm text-muted-foreground mt-2">
+                  Use this link to access your integration dashboard
+                </p> */}
+              </div>
+
+              {/* New Section for Template ID Input */}
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button variant="outline" asChild>
+                <Link href={"/dashboard"}>go to Dashoboard</Link>
+              </Button>
+              {/* <Button
+    variant="default"
+    className="gap-2"
+    onClick={() => window.location.reload()}
+  >
+    <RefreshCw className="w-4 h-4" />
+    Start Over
+  </Button> */}
+            </CardFooter>
+          </>
+        )}
       </Card>
+      <Toaster />
     </div>
   );
 }

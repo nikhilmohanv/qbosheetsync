@@ -12,8 +12,9 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Label } from "./ui/label";
+import { Loader2 } from "lucide-react";
 
-export function DashboardHeader({ user,createConnection,setName }) {
+export function DashboardHeader({ user, createConnection, setName, loading }) {
   return (
     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
       <div>
@@ -42,14 +43,22 @@ export function DashboardHeader({ user,createConnection,setName }) {
               </Label>
               <Input
                 id="name"
-                defaultValue="Pedro Duarte"
                 className="col-span-3"
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={createConnection}>Create Connection</Button>
+            <Button onClick={createConnection} disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="animate-spin mr-2" />
+                  Creating...
+                </>
+              ) : (
+                "Create Connection"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

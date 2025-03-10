@@ -32,6 +32,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 // app/dashboard/page.js
 export default function Dashboard() {
@@ -40,22 +42,29 @@ export default function Dashboard() {
 
   const [name, setName] = useState("");
   const [connections, setConnections] = useState([]); //to store all the connections user made
+  const [fetchingConnection, setFetchingConnetion] = useState(false); //store connection fetching state
+  const [createConnectionLoading, setCreateConnectionLoading] = useState(false); //used to store button loading state of create connection button
 
   useEffect(() => {
     async function fetchConnections() {
       if (!user) return;
+      setFetchingConnetion(true);
 
       const { data, error } = await supabase
         .from("QBO Sheet Connect")
-        .select("id, name")
+        .select(
+          "id, name,qbo_connection_complete,gsheets_connection_complete,spreadsheet_id,created_at"
+        )
         .eq("user_id", user.id);
 
       if (error) {
         console.error("Error fetching connections:", error);
         return;
       }
+      const sortedData = data.sort((a, b) => b.id - a.id);
 
-      setConnections(data);
+      setConnections(sortedData);
+      setFetchingConnetion(false);
     }
 
     fetchConnections();
@@ -65,44 +74,102 @@ export default function Dashboard() {
 
   // handle creation of new connection
   async function createConnection() {
-    const { data: qboData, error: qboError } = await supabase
-      .from("qbotokens")
-      .insert([{ user_id: user.id }])
-      .select();
+    setCreateConnectionLoading(true);
+    let qboData, sheetData, connectData;
 
-    if (qboError) {
-      console.error("QuickBooks insert error:", qboError);
-      return;
-    }
+    try {
+      // Validate inputs
+      if (!user?.id || !name) {
+        throw new Error("User ID or name is missing.");
+      }
 
-    const { data: sheetData, error: sheetError } = await supabase
-      .from("sheetstoken")
-      .insert([{ user_id: user.id }])
-      .select();
+      // Step 1: Insert into qbotokens
+      const { data: qboInsertData, error: qboError } = await supabase
+        .from("qbotokens")
+        .insert([{ user_id: user.id }])
+        .select("id");
 
-    if (sheetError) {
-      console.error("Google Sheets insert error:", sheetError);
-      return;
-    }
+      if (qboError) {
+        throw new Error(`QuickBooks insert error: ${qboError.message}`);
+      }
+      qboData = qboInsertData[0];
 
-    // Now, insert into "QBO Sheet Connect" using the inserted IDs
-    const { data: connectData, error: connectError } = await supabase
-      .from("QBO Sheet Connect")
-      .insert([
-        {
-          user_id: user.id,
-          name: name,
-          quickbook_token_id: qboData[0].id, // Get inserted ID from first insert
-          sheets_token_id: sheetData[0].id,
-        },
-      ])
-      .select("id");
+      // Step 2: Insert into sheetstoken
+      const { data: sheetInsertData, error: sheetError } = await supabase
+        .from("sheetstoken")
+        .insert([{ user_id: user.id }])
+        .select("id");
 
-    if (connectError) {
-      console.error("QBO Sheet Connect insert error:", connectError);
-    } else {
+      if (sheetError) {
+        throw new Error(`Google Sheets insert error: ${sheetError.message}`);
+      }
+      sheetData = sheetInsertData[0];
+
+      // Step 3: Insert into QBO Sheet Connect
+      const { data: connectInsertData, error: connectError } = await supabase
+        .from("QBO Sheet Connect")
+        .insert([
+          {
+            user_id: user.id,
+            name: name,
+            quickbook_token_id: qboData.id,
+            sheets_token_id: sheetData.id,
+          },
+        ])
+        .select("id");
+
+      if (connectError) {
+        throw new Error(
+          `QBO Sheet Connect insert error: ${connectError.message}`
+        );
+      }
+      connectData = connectInsertData[0];
+
+      // Step 4: Update sheettokens with connection_id
+      const { error: sheetConnectionError } = await supabase
+        .from("sheetstoken")
+        .update({ connection_id: connectData.id })
+        .eq("id", sheetData.id);
+
+      if (sheetConnectionError) {
+        throw new Error(
+          `SheetTokens update error: ${sheetConnectionError.message}`
+        );
+      }
+
+      // Step 5: Update qbotokens with connection_id
+      const { error: qboConnectionError } = await supabase
+        .from("qbotokens")
+        .update({ connection_id: connectData.id })
+        .eq("id", qboData.id);
+
+      if (qboConnectionError) {
+        throw new Error(
+          `QBOTokens update error: ${qboConnectionError.message}`
+        );
+      }
+      toast.success(
+        "Connection created successfully! Please complete onboarding now"
+      );
+      // Success
       console.log("Connection created:", connectData);
-      router.push(`/edit-connection/${connectData[0].id}`);
+      router.push(`/onboarding/${connectData.id}`);
+    } catch (error) {
+      console.error("Error in createConnection:", error);
+
+      // Rollback: Clean up partially created data. as i made cascade in supabse db, the data at other tables will also deleted.
+
+      if (connectData) {
+        await supabase
+          .from("QBO Sheet Connect")
+          .delete()
+          .eq("id", connectData.id);
+      }
+
+      // Notify the user
+      toast.error("Failed to create connection. Please try again.");
+    } finally {
+      setCreateConnectionLoading(false);
     }
   }
 
@@ -114,21 +181,18 @@ export default function Dashboard() {
         user={user}
         setName={setName}
         createConnection={createConnection}
+        loading={createConnectionLoading}
       />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {connections.length === 0 ? (
-            <p>No connections found</p>
+          {fetchingConnection ? (
+            <Loader2 className="animate-spin"/> // Show loader while fetching
+          ) : connections.length === 0 ? (
+            <p>No connections found</p> // Show message if no connections
           ) : (
             <ul>
               {connections.map((conn) => (
-                <Link href={`/edit-connection/${conn.id}`} key={conn.id}>
-                  <ConnectionStatus
-                    name={conn.name}
-                    id={conn.id}
-                   
-                  />
-                </Link>
+                <ConnectionStatus data={conn} key={conn.id} /> // Render connections
               ))}
             </ul>
           )}

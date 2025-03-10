@@ -123,7 +123,7 @@ export async function GET(request) {
 
     // Redirect to the edit connection page
     return NextResponse.redirect(
-      new URL(`/edit-connection/${id}`, request.url)
+      new URL(`/onboarding/${id}`, request.url)
     );
   } catch (error) {
     // Comprehensive catch-all error handling

@@ -118,7 +118,7 @@ export async function GET(request) {
 
     // Redirect the user back to the dashboard with the connection ID
     return NextResponse.redirect(
-      new URL(`/edit-connection/${id}`, request.url)
+      new URL(`/onboarding/${id}`, request.url)
     );
   } catch (error) {
     console.error("Error during Google token exchange:", error);
