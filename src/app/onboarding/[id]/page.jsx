@@ -142,7 +142,8 @@ export default function ConnectPage() {
     }
   };
 
-  const saveTemplateId = async () => {
+  const saveTemplateId = async (e) => {
+    e.preventDefault();
     setSaveTemplateIdLoading(true); // Set loading to true when the function starts
     try {
       const { data, error } = await supabase
@@ -162,7 +163,7 @@ export default function ConnectPage() {
       toast("Error");
     } finally {
       setSaveTemplateIdLoading(false); // Set loading to false when the function ends
-      setCurrentStep(4)
+      setCurrentStep(4);
     }
   };
 
@@ -385,7 +386,10 @@ export default function ConnectPage() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <form
+                  onSubmit={saveTemplateId}
+                  className="flex items-center gap-2"
+                >
                   <Input
                     value={templateId}
                     onChange={(e) => setTemplateId(e.target.value)}
@@ -395,13 +399,15 @@ export default function ConnectPage() {
 
                   <Button
                     size="sm"
+                    type="submit"
                     onClick={saveTemplateId}
                     disabled={saveTemplateIdLoading}
                   >
                     {saveTemplateIdLoading ? "Saving..." : "Save"}{" "}
                     {/* Show "Saving..." when loading */}
                   </Button>
-                </div>
+                </form>
+
                 <p className="text-sm text-muted-foreground mt-2">
                   Paste the Template ID from your copied Google Sheet
                 </p>

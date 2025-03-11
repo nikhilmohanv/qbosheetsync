@@ -78,7 +78,7 @@ export async function GET(request) {
     // Update the tokens and email in sheetstoken table
     const updateData = {
       access_token,
-      refresh_token
+      refresh_token,
     };
 
     // Only add email to the update if we successfully retrieved it
@@ -91,8 +91,23 @@ export async function GET(request) {
       .update(updateData)
       .eq("id", tokenIdToUpdate);
 
+    const { error: updateAllEmailDataError } = await supabase
+      .from("sheetstoken")
+      .update(updateData)
+      .eq("email", userEmail);
+
     if (tokenError) {
       console.error("Error saving Google Sheets tokens:", tokenError);
+      return NextResponse.json(
+        { error: "Failed to save Google Sheets tokens" },
+        { status: 500 }
+      );
+    }
+    if (updateAllEmailDataError) {
+      console.error(
+        "Error saving Google Sheets tokens:",
+        updateAllEmailDataError
+      );
       return NextResponse.json(
         { error: "Failed to save Google Sheets tokens" },
         { status: 500 }
@@ -117,9 +132,7 @@ export async function GET(request) {
     }
 
     // Redirect the user back to the dashboard with the connection ID
-    return NextResponse.redirect(
-      new URL(`/onboarding/${id}`, request.url)
-    );
+    return NextResponse.redirect(new URL(`/onboarding/${id}`, request.url));
   } catch (error) {
     console.error("Error during Google token exchange:", error);
     return NextResponse.json(

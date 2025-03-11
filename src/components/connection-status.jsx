@@ -36,7 +36,7 @@ export function ConnectionStatus({ data }) {
   let onboardingCompleted = false;
   const router = useRouter();
   if (
-    data.spreadsheet_id != null &&
+    (data.spreadsheet_id != null && data.spreadsheet_id !== "") &&
     data.gsheets_connection_complete &&
     data.qbo_connection_complete
   ) {
@@ -80,7 +80,7 @@ export function ConnectionStatus({ data }) {
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden shadow-none py-0 gap-0">
       <CardContent className="p-0">
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">
@@ -94,50 +94,13 @@ export function ConnectionStatus({ data }) {
           {onboardingCompleted ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-blue-600"
-                  >
-                    <path d="M21 8v8a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5Z"></path>
-                    <path d="m9 15 3-3 3 3"></path>
-                    <path d="M12 12v9"></path>
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">QuickBooks</p>
-                  <p className="text-xs text-muted-foreground">
-                    {"connection.quickbooksAccount"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                  <FileSpreadsheet className="w-4 h-4 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Google Sheets</p>
-                  <p className="text-xs text-muted-foreground">
-                    {"connection.googleSheetsAccount"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
                   <Clock className="w-4 h-4 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">Last Synced</p>
+                  <p className="text-sm font-medium">
+                    Last Synced: 12:32 PM IST 12/12/2025
+                  </p>
                   <p className="text-xs text-muted-foreground"></p>
                 </div>
               </div>

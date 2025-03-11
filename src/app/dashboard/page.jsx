@@ -34,6 +34,13 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // app/dashboard/page.js
 export default function Dashboard() {
@@ -41,6 +48,8 @@ export default function Dashboard() {
   const router = useRouter();
 
   const [name, setName] = useState("");
+  const [nameError, setNameError] = useState(""); //to show error if name is empty
+
   const [connections, setConnections] = useState([]); //to store all the connections user made
   const [fetchingConnection, setFetchingConnetion] = useState(false); //store connection fetching state
   const [createConnectionLoading, setCreateConnectionLoading] = useState(false); //used to store button loading state of create connection button
@@ -73,14 +82,18 @@ export default function Dashboard() {
   if (loading) return <p>Loading...</p>;
 
   // handle creation of new connection
-  async function createConnection() {
+  async function createConnection(e) {
+    e.preventDefault();
     setCreateConnectionLoading(true);
     let qboData, sheetData, connectData;
 
     try {
       // Validate inputs
-      if (!user?.id || !name) {
+      if (!user) {
         throw new Error("User ID or name is missing.");
+      }
+      if (name === "") {
+        throw new Error("Name is empty");
       }
 
       // Step 1: Insert into qbotokens
@@ -175,28 +188,82 @@ export default function Dashboard() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      {/* <DashboardSidebar /> */}
-
-      <DashboardHeader
-        user={user}
-        setName={setName}
-        createConnection={createConnection}
-        loading={createConnectionLoading}
-      />
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {fetchingConnection ? (
-            <Loader2 className="animate-spin"/> // Show loader while fetching
-          ) : connections.length === 0 ? (
-            <p>No connections found</p> // Show message if no connections
-          ) : (
-            <ul>
-              {connections.map((conn) => (
-                <ConnectionStatus data={conn} key={conn.id} /> // Render connections
-              ))}
-            </ul>
-          )}
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">QuickBooks to Google Sheets</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your data connections
+          </p>
         </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="w-4 h-4" />
+              New Connection
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={createConnection}>
+              <DialogHeader>
+                <DialogTitle>New Connection</DialogTitle>
+                {/* <DialogDescription>
+                Make changes to your profile here. Click save when you're done.
+              </DialogDescription> */}
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Name
+                  </Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                    }}
+                    className="col-span-3"
+                    required
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  className="gap-2"
+                  type="submit"
+                  // onClick={createConnection}
+                  disabled={createConnectionLoading}
+                >
+                  {createConnectionLoading ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                  New Connection
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {/* Connections Grid */}
+      <div className="grid gap-5 md:grid-cols-3 lg:grid-cols-4">
+        {fetchingConnection ? (
+          <Loader2 className="animate-spin" /> // Show loader while fetching
+        ) : connections.length === 0 ? (
+          <div className="text-center py-12 col-span-full">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+              <Search className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium">No connections found</h3>
+           
+          </div>
+        ) : (
+          connections.map((conn) => (
+            <ConnectionStatus data={conn} key={conn.id} /> // Render connections
+          ))
+        )}
       </div>
     </div>
   );
