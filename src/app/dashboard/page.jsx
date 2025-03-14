@@ -34,13 +34,6 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 // app/dashboard/page.js
 export default function Dashboard() {
@@ -48,7 +41,6 @@ export default function Dashboard() {
   const router = useRouter();
 
   const [name, setName] = useState("");
-  const [nameError, setNameError] = useState(""); //to show error if name is empty
 
   const [connections, setConnections] = useState([]); //to store all the connections user made
   const [fetchingConnection, setFetchingConnetion] = useState(false); //store connection fetching state
@@ -79,7 +71,14 @@ export default function Dashboard() {
     fetchConnections();
   }, [user]);
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [loading, user, router]);
+
   if (loading) return <p>Loading...</p>;
+  if (!loading && !user) return null; // Don't render anything else while redirecting
 
   // handle creation of new connection
   async function createConnection(e) {
@@ -257,7 +256,6 @@ export default function Dashboard() {
               <Search className="h-6 w-6 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-medium">No connections found</h3>
-           
           </div>
         ) : (
           connections.map((conn) => (

@@ -168,6 +168,11 @@ export default function ConnectPage() {
   };
 
   if (loading) return <p>Loading...</p>;
+  if (!loading) {
+    if (!user) {
+      router.push("/login");
+    }
+  }
 
   return (
     <div className="container max-w-3xl py-10 px-4 mx-auto">
