@@ -99,6 +99,7 @@ export default function LoginPage() {
               </Button>
             </div>
           </form>
+          
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <div className="text-sm text-center">

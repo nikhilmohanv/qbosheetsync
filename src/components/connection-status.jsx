@@ -32,11 +32,11 @@ const connections = [
   },
 ];
 export function ConnectionStatus({ data }) {
-  const [connectionDeleting, setConnectionDeleting] = useState(false); //loading state to store connection deletion state
   let onboardingCompleted = false;
   const router = useRouter();
   if (
-    (data.spreadsheet_id != null && data.spreadsheet_id !== "") &&
+    data.spreadsheet_id != null &&
+    data.spreadsheet_id !== "" &&
     data.gsheets_connection_complete &&
     data.qbo_connection_complete
   ) {
@@ -57,7 +57,6 @@ export function ConnectionStatus({ data }) {
   };
 
   const deleteConnection = async () => {
-    setConnectionDeleting(true);
     try {
       const { data: responseData, error } = await supabase
         .from("QBO Sheet Connect")
@@ -74,8 +73,6 @@ export function ConnectionStatus({ data }) {
     } catch (error) {
       console.log("Error deleting connection:", error);
       toast.error("Failed to delete connection"); // Notify the user of the error
-    } finally {
-      setConnectionDeleting(false);
     }
   };
 
